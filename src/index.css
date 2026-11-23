@@ -1,18 +1,454 @@
 @import "tailwindcss";
 
+/* ── Шрифты ── */
+@import "@fontsource/inter/400.css";
+@import "@fontsource/inter/500.css";
+@import "@fontsource/inter/600.css";
+@import "@fontsource/montserrat/400.css";
+@import "@fontsource/montserrat/600.css";
+@import "@fontsource/montserrat/700.css";
+
 @theme {
   --font-montserrat: "Montserrat", sans-serif;
   --font-inter: "Inter", sans-serif;
 }
 
-* {
+/* ── Глобальные CSS-переменные ── */
+:root {
+  --bg:             #0d1b2a;
+  --surface:        rgba(255, 255, 255, 0.05);
+  --surface-hover:  rgba(255, 255, 255, 0.08);
+  --border:         rgba(255, 255, 255, 0.08);
+  --border-accent:  rgba(78, 205, 196, 0.3);
+  --text:           #ffffff;
+  --text-muted:     rgba(255, 255, 255, 0.45);
+  --text-faint:     rgba(255, 255, 255, 0.25);
+  --accent:         #4ECDC4;
+  --danger:         #FF6B6B;
+  --warning:        #FFD93D;
+  --radius-card:    12px;
+  --radius-btn:     8px;
+  --page-padding:   24px;
+}
+
+/* ── Сброс и базовые стили ── */
+*, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 
-body {
-  font-family: var(--font-inter);
-  background-color: #f0f2f5;
-  color: #1a1a2e;
+html, body {
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: var(--font-inter), Inter, sans-serif;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Скроллбар ── */
+::-webkit-scrollbar       { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.22); }
+
+/* ── Root ── */
+#root { background: var(--bg); min-height: 100vh; }
+
+/* ─── Шапка ─── */
+.dashboard-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: #0f2035;
+}
+
+/* Базовый стиль строки — каждая занимает полную ширину */
+.header-row {
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+  width: 100%;
+  box-sizing: border-box;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+/* Строка 1: бренд */
+.header-row--brand {
+  height: 44px;
+  gap: 12px;
+}
+
+.brand-name {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.brand-divider { color: rgba(255,255,255,0.2); }
+
+.brand-subtitle {
+  font-size: 12px;
+  color: rgba(255,255,255,0.45);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+
+/* Строка 2: выбор даты */
+.header-row--date {
+  height: 40px;
+  gap: 8px;
+}
+
+.ctrl-select {
+  padding: 4px 10px;
+  font-size: 13px;
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 7px;
+  color: #ffffff;
+  cursor: pointer;
+  outline: none;
+}
+
+/* Строка 3: MoM/QoQ/YoY + обновить */
+.header-row--controls {
+  height: 40px;
+  gap: 12px;
+}
+
+.period-toggle {
+  display: flex;
+  background: rgba(255,255,255,0.07);
+  border-radius: 8px;
+  padding: 3px;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.period-btn {
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: rgba(255,255,255,0.5);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+
+.period-btn.active        { background: rgba(255,255,255,0.14); color: #ffffff; }
+.period-btn:hover:not(.active) { color: #ffffff; }
+
+.header-refresh-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.btn-refresh {
+  padding: 5px 14px;
+  font-size: 12px;
+  font-weight: 500;
+  background: rgba(78,205,196,0.12);
+  color: #4ECDC4;
+  border: 1px solid rgba(78,205,196,0.3);
+  border-radius: 7px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+
+.btn-refresh:hover { background: rgba(78,205,196,0.22); }
+
+.header-updated {
+  font-size: 11px;
+  color: rgba(255,255,255,0.3);
+  white-space: nowrap;
+  min-width: 90px;
+}
+
+/* Строка 4: табы навигации */
+.dashboard-tabs {
+  display: flex;
+  padding: 0 24px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.dashboard-tabs::-webkit-scrollbar { display: none; }
+
+.tab {
+  padding: 10px 18px;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(255,255,255,0.45);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.tab:hover                { color: rgba(255,255,255,0.8); }
+.tab.active               { color: #ffffff; border-bottom-color: #4ECDC4; font-weight: 700; }
+
+/* ── Section layout ── */
+.section-content {
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+/* ── Section header ── */
+.section-intro {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.section-badge {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--accent);
+  color: #0d1b2a;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  letter-spacing: 0.02em;
+}
+
+.section-name {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: 0.01em;
+}
+
+/* ── KPI grid & card ── */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.kpi-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: background 0.15s;
+}
+.kpi-card:hover { background: var(--surface-hover); }
+
+.kpi-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.kpi-value {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.1;
+}
+
+.kpi-delta             { font-size: 13px; font-weight: 600; }
+.kpi-delta.positive    { color: #34D399; }
+.kpi-delta.negative    { color: var(--danger); }
+
+.kpi-tag               { display: inline-block; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 99px; width: fit-content; }
+.kpi-tag--ok           { background: rgba(52, 211, 153, 0.15); color: #34D399; }
+.kpi-tag--warn         { background: rgba(255, 107, 107, 0.15); color: var(--danger); }
+
+/* ── Chart card ── */
+.chart-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  padding: 20px 24px;
+}
+
+.waterfall-scroll { overflow-x: auto; }
+.waterfall-empty { color: var(--text-muted); font-size: 13px; padding: 24px 0; }
+.receipt-legend { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px 12px; margin-top: 4px; }
+.receipt-legend span { display: flex; align-items: center; gap: 6px; min-width: 0; color: var(--text-muted); font-size: 11px; }
+.receipt-legend i { display: inline-block; width: 9px; height: 9px; flex-shrink: 0; border-radius: 2px; }
+
+.chart-header   { margin-bottom: 16px; }
+
+.chart-title {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.chart-subtitle { font-size: 11px; color: var(--text-muted); }
+
+/* ── Rent table (рентабельности) ── */
+.rent-table {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.rent-table-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.rent-row {
+  display: grid;
+  grid-template-columns: 180px 1fr 72px 60px;
+  align-items: center;
+  gap: 14px;
+}
+
+.rent-label  { font-size: 12px; color: var(--text-muted); }
+
+.rent-bar-wrap {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.rent-bar {
+  height: 100%;
+  border-radius: 3px;
+  background: var(--accent);
+  transition: width 0.4s ease;
+}
+
+.rent-value {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  text-align: right;
+}
+
+.rent-delta            { font-size: 11px; font-weight: 600; text-align: right; }
+.rent-delta.positive   { color: #34D399; }
+.rent-delta.negative   { color: var(--danger); }
+
+/* ── Conclusions (раздел 05) ── */
+.conclusions-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.conclusion-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.conclusion-card--positive { border-top: 3px solid #34D399; }
+.conclusion-card--warning  { border-top: 3px solid var(--warning); }
+.conclusion-card--action   { border-top: 3px solid var(--accent); }
+
+.conclusion-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.conclusion-card-title {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.conclusion-textarea {
+  width: 100%;
+  min-height: 140px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  color: var(--text);
+  font-size: 13px;
+  font-family: inherit;
+  resize: vertical;
+  outline: none;
+  transition: border-color 0.15s;
+  flex: 1;
+}
+.conclusion-textarea:focus      { border-color: var(--border-accent); }
+.conclusion-textarea::placeholder { color: var(--text-faint); }
+
+.conclusion-display {
+  font-size: 13px;
+  color: var(--text-muted);
+  white-space: pre-wrap;
+  min-height: 32px;
+  flex: 1;
+}
+.conclusion-display--empty {
+  color: var(--text-faint);
+  font-style: italic;
+}
+
+.btn-save {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: var(--radius-btn);
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+.btn-save:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgba(78, 205, 196, 0.08);
 }

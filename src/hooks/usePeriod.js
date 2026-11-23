@@ -51,7 +51,7 @@ export function usePeriod(rawData, months) {
       if (month <= 0) { month += 12; year -= 1; }
       result.push(`${year}-${String(month).padStart(2, '0')}`);
     }
-    return result.filter(x => months.includes(x));
+    return result;
   }, [months]);
 
   // Current period months

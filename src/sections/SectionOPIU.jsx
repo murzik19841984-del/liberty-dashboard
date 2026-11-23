@@ -6,7 +6,8 @@ import {
 import { SectionTitle } from '../components/SectionTitle';
 import { KpiCard } from '../components/KpiCard';
 import { ChartCard } from '../components/ChartCard';
-import { fmtM, fmtPct, fmtNum, fmtDelta } from '../utils/format';
+import { NetProfitWaterfall } from '../components/NetProfitWaterfall';
+import { fmtM, fmtPct, fmtDelta } from '../utils/format';
 import { COLORS, MONTH_NAMES } from '../constants';
 
 /* ── Константы ── */
@@ -21,32 +22,74 @@ const FOT_CLR    = [COLORS.blue, COLORS.teal, COLORS.amber, COLORS.lblue];
 /* ── Светофор ── */
 function TrafficLight({ ok, rule, hint }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 flex items-center gap-4">
-      <div
-        className="w-12 h-12 rounded-full flex-shrink-0 flex items-center justify-center text-white text-xl font-bold"
-        style={{ background: ok ? COLORS.green : COLORS.red }}
-      >
+    <div className="kpi-card" style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
+      <div style={{
+        width: 44, height: 44, borderRadius: '50%', flexShrink: 0,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        background: ok ? COLORS.green : COLORS.red,
+        color: '#fff', fontSize: 18, fontWeight: 700,
+      }}>
         {ok ? '✓' : '✗'}
       </div>
       <div>
-        <div className="text-xs font-semibold text-gray-800 mb-1">{rule}</div>
-        <div className="text-xs font-medium" style={{ color: ok ? COLORS.teal : COLORS.red }}>
+        <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>{rule}</div>
+        <div style={{ fontSize: 12, fontWeight: 500, color: ok ? COLORS.teal : COLORS.red }}>
           {ok ? 'Выполняется' : 'Не выполняется'}
         </div>
-        {hint && <div className="text-xs text-gray-400 mt-0.5">{hint}</div>}
+        {hint && <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{hint}</div>}
       </div>
     </div>
   );
 }
 
+/* ── Строка рентабельности ── */
+function RentRow({ label, value, prevValue }) {
+  const pct = value !== null ? Math.min(Math.max(value * 100, 0), 100) : 0;
+  const delta = fmtDelta(value, prevValue);
+  const deltaFormatted = delta !== null ? (delta >= 0 ? '+' : '') + (delta * 100).toFixed(1) + '%' : null;
+  const isPositive = delta !== null && delta > 0;
+  return (
+    <div className="rent-row">
+      <span className="rent-label">{label}</span>
+      <div className="rent-bar-wrap">
+        <div className="rent-bar" style={{ width: `${pct}%` }} />
+      </div>
+      <span className="rent-value">{value !== null ? fmtPct(value) : '—'}</span>
+      {deltaFormatted
+        ? <span className={`rent-delta ${isPositive ? 'positive' : 'negative'}`}>{deltaFormatted}</span>
+        : <span />
+      }
+    </div>
+  );
+}
+
 /* ── Основной компонент ── */
-export function SectionOPIU({ get, getPrev, getAgg, chartBuckets, last12months }) {
+export function SectionOPIU({ get, getPrev, getAgg, chartBuckets, last12months, period }) {
 
   /* 2.1 — KPI */
   const revenue   = get('выручка');
   const margin    = get('маржинальный_доход');
   const ebitda    = get('ebitda');
   const netProfit = get('чистая_прибыль');
+  const netProfitPrev = getPrev('чистая_прибыль');
+  const belowEbitda = getter => getter('расходы_ниже_ebitda')
+    ?? (getter('чистая_прибыль') != null && getter('ebitda') != null
+      ? getter('чистая_прибыль') - getter('ebitda') : null);
+  const bridgeFactors = [
+    { key: 'выручка', name: 'Выручка', lines: ['Выручка'] },
+    { key: 'переменные_расходы', name: 'Переменные расходы', lines: ['Переменные', 'расходы'] },
+    { key: 'общепроизводственные_расходы', name: 'Общепроизводственные расходы', lines: ['Общепроизв.', 'расходы'] },
+    { key: 'административные_расходы', name: 'Административные расходы', lines: ['Административные', 'расходы'] },
+    { key: 'коммерческие_расходы', name: 'Коммерческие расходы', lines: ['Коммерческие', 'расходы'] },
+  ].map(factor => {
+    const now = get(factor.key);
+    const before = getPrev(factor.key);
+    return { ...factor, value: now != null && before != null ? now - before : null };
+  });
+  const belowNow = belowEbitda(get);
+  const belowPrev = belowEbitda(getPrev);
+  bridgeFactors.push({ name: 'Расходы ниже EBITDA', lines: ['Ниже EBITDA'],
+    value: belowNow != null && belowPrev != null ? belowNow - belowPrev : null });
   const rentMar   = get('рентабельность_маржинальная');
   const rentGross = get('рентабельность_валовая');
   const rentEbt   = get('рентабельность_ebitda');
@@ -150,28 +193,34 @@ export function SectionOPIU({ get, getPrev, getAgg, chartBuckets, last12months }
 
   /* ── Render ── */
   return (
-    <div className="p-8 space-y-8">
+    <div className="section-content">
       <SectionTitle number="02">Отчёт о прибылях и убытках</SectionTitle>
 
-      {/* 2.1 — 8 KPI (2 ряда × 4) */}
-      <div className="grid grid-cols-4 gap-4">
+      {/* 2.1 — 4 финансовых KPI */}
+      <div className="kpi-grid">
         <KpiCard label="Выручка"            value={revenue}   format="money" delta={fmtDelta(revenue,   getPrev('выручка'))} />
         <KpiCard label="Маржинальный доход" value={margin}    format="money" delta={fmtDelta(margin,    getPrev('маржинальный_доход'))} />
         <KpiCard label="EBITDA"             value={ebitda}    format="money" delta={fmtDelta(ebitda,    getPrev('ebitda'))} />
-        <KpiCard label="Чистая прибыль"     value={netProfit} format="money" delta={fmtDelta(netProfit, getPrev('чистая_прибыль'))} />
+        <KpiCard label="Чистая прибыль"     value={netProfit} format="money" delta={fmtDelta(netProfit, netProfitPrev)} />
       </div>
-      <div className="grid grid-cols-4 gap-4">
-        <KpiCard label="Рент. маржинальная" value={rentMar}   format="pct" accentColor={COLORS.teal} delta={fmtDelta(rentMar,   getPrev('рентабельность_маржинальная'))} />
-        <KpiCard label="Рент. валовая"      value={rentGross} format="pct" accentColor={COLORS.teal} delta={fmtDelta(rentGross, getPrev('рентабельность_валовая'))} />
-        <KpiCard label="Рент. EBITDA"       value={rentEbt}   format="pct" accentColor={COLORS.teal} delta={fmtDelta(rentEbt,   getPrev('рентабельность_ebitda'))} />
-        <KpiCard label="Рент. чистая"       value={rentNet}   format="pct" accentColor={COLORS.teal} delta={fmtDelta(rentNet,   getPrev('рентабельность_чп'))} />
+
+      <NetProfitWaterfall previous={netProfitPrev} current={netProfit} effects={bridgeFactors}
+        comparison={period.comparison} previousMonths={period.prevPeriodMonths} currentMonths={period.periodMonths} />
+
+      {/* 2.1б — Рентабельности (rent-table) */}
+      <div className="rent-table">
+        <div className="rent-table-title">Рентабельность</div>
+        <RentRow label="Маржинальная"  value={rentMar}   prevValue={getPrev('рентабельность_маржинальная')} />
+        <RentRow label="Валовая"       value={rentGross} prevValue={getPrev('рентабельность_валовая')} />
+        <RentRow label="EBITDA"        value={rentEbt}   prevValue={getPrev('рентабельность_ebitda')} />
+        <RentRow label="Чистая прибыль" value={rentNet}  prevValue={getPrev('рентабельность_чп')} />
       </div>
 
       {/* 2.2 — ComboChart: Bar=выручка + Line=ЧП, last 12 мес */}
       <ChartCard title="Выручка и чистая прибыль" subtitle="последние 12 месяцев · ₽">
         <ResponsiveContainer width="100%" height={280}>
           <ComposedChart data={comboL12} margin={{ top: 20, right: 20, left: 10, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
             <XAxis dataKey="month" tick={{ fontSize: 11, fill: COLORS.gray }} />
             <YAxis tickFormatter={v => Math.round(v / 1000) + 'k'} tick={{ fontSize: 10, fill: COLORS.gray }} />
             <Tooltip formatter={(v, name) => [fmtM(v), name]} />
@@ -179,7 +228,7 @@ export function SectionOPIU({ get, getPrev, getAgg, chartBuckets, last12months }
             <Bar dataKey="выручка" fill={COLORS.blue} radius={[3, 3, 0, 0]} name="Выручка">
               <LabelList dataKey="выручка" position="top"
                 formatter={v => v > 500000 ? (v / 1_000_000).toFixed(1) + 'M' : ''}
-                style={{ fontSize: 9, fill: COLORS.navy }} />
+                style={{ fontSize: 9, fill: 'rgba(255,255,255,0.6)' }} />
             </Bar>
             <Line type="monotone" dataKey="чистая_прибыль" stroke={COLORS.teal} strokeWidth={2.5}
               dot={{ r: 4 }} name="Чистая прибыль" />
@@ -206,7 +255,7 @@ export function SectionOPIU({ get, getPrev, getAgg, chartBuckets, last12months }
         <ChartCard title="Динамика структуры расходов" subtitle="100% · доли каждой статьи" className="col-span-2">
           <ResponsiveContainer width="100%" height={260}>
             <BarChart data={expStructData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
               <XAxis dataKey="month" tick={{ fontSize: 11, fill: COLORS.gray }} />
               <YAxis domain={[0, 100]} tickFormatter={v => v + '%'} tick={{ fontSize: 10, fill: COLORS.gray }} />
               <Tooltip formatter={(v, name) => [v.toFixed(1) + '%', name]} />
@@ -226,7 +275,7 @@ export function SectionOPIU({ get, getPrev, getAgg, chartBuckets, last12months }
       >
         <ResponsiveContainer width="100%" height={260}>
           <ComposedChart data={dualExpData} margin={{ top: 20, right: 50, left: 10, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
             <XAxis dataKey="month" tick={{ fontSize: 11, fill: COLORS.gray }} />
             <YAxis yAxisId="left" tickFormatter={v => Math.round(v / 1000) + 'k'} tick={{ fontSize: 10, fill: COLORS.gray }} />
             <YAxis yAxisId="right" orientation="right" tickFormatter={v => v + '%'} tick={{ fontSize: 10, fill: COLORS.gray }} />
@@ -244,7 +293,7 @@ export function SectionOPIU({ get, getPrev, getAgg, chartBuckets, last12months }
         <ChartCard title="Выручка vs Точка безубыточности" subtitle="₽">
           <ResponsiveContainer width="100%" height={240}>
             <ComposedChart data={beChartData} margin={{ top: 20, right: 20, left: 10, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
               <XAxis dataKey="month" tick={{ fontSize: 11, fill: COLORS.gray }} />
               <YAxis tickFormatter={v => (v / 1_000_000).toFixed(1) + 'M'} tick={{ fontSize: 10, fill: COLORS.gray }} />
               <Tooltip formatter={(v, name) => [fmtM(v), name]} />
@@ -256,12 +305,11 @@ export function SectionOPIU({ get, getPrev, getAgg, chartBuckets, last12months }
           </ResponsiveContainer>
         </ChartCard>
 
-        <div className="grid grid-cols-4 gap-4">
+        <div className="kpi-grid">
           <KpiCard label="Выручка"                value={revenue}  format="money" />
           <KpiCard label="Точка безубыточности"   value={bep}      format="money" />
           <KpiCard label="Запас прочности (абс)"  value={safeAbs}  format="money" />
-          <KpiCard label="Запас прочности (%)"    value={safePct}  format="pct"
-            accentColor={safePct !== null && safePct > 0 ? COLORS.teal : COLORS.red} />
+          <KpiCard label="Запас прочности (%)"    value={safePct}  format="pct" />
         </div>
       </div>
 
@@ -285,7 +333,7 @@ export function SectionOPIU({ get, getPrev, getAgg, chartBuckets, last12months }
         <ChartCard title="Динамика темпов роста" subtitle="выручка и прибыль · норма > 1">
           <ResponsiveContainer width="100%" height={220}>
             <LineChart data={growthData} margin={{ top: 20, right: 20, left: 10, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
               <XAxis dataKey="month" tick={{ fontSize: 11, fill: COLORS.gray }} />
               <YAxis tickFormatter={v => v?.toFixed(2)} tick={{ fontSize: 10, fill: COLORS.gray }} />
               <Tooltip formatter={(v, name) => [v?.toFixed(3), name]} />
@@ -301,40 +349,43 @@ export function SectionOPIU({ get, getPrev, getAgg, chartBuckets, last12months }
         </ChartCard>
       </div>
 
-      {/* 2.7 — Операционный рычаг + динамический текст */}
+      {/* 2.7 — Операционный рычаг */}
       <ChartCard title="Операционный рычаг" subtitle="МД / EBITDA">
         <ResponsiveContainer width="100%" height={220}>
           <LineChart data={leverageData} margin={{ top: 20, right: 20, left: 10, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
             <XAxis dataKey="month" tick={{ fontSize: 11, fill: COLORS.gray }} />
             <YAxis tickFormatter={v => v?.toFixed(1)} tick={{ fontSize: 10, fill: COLORS.gray }} />
             <Tooltip formatter={v => [v?.toFixed(2), 'Операционный рычаг']} />
-            <Line type="monotone" dataKey="value" stroke={COLORS.navy} strokeWidth={2.5} dot={{ r: 4 }}>
+            <Line type="monotone" dataKey="value" stroke={COLORS.lblue} strokeWidth={2.5} dot={{ r: 4 }}>
               <LabelList dataKey="value" position="top"
                 formatter={v => v?.toFixed(1)}
-                style={{ fontSize: 10, fill: COLORS.navy }} />
+                style={{ fontSize: 10, fill: 'rgba(255,255,255,0.6)' }} />
             </Line>
           </LineChart>
         </ResponsiveContainer>
         {leverage !== null && (
-          <div className="mt-4 rounded-lg px-5 py-3 text-sm font-semibold text-center"
-            style={{ background: COLORS.bg, color: COLORS.navy }}>
+          <div style={{
+            marginTop: 16, borderRadius: 8, padding: '12px 20px',
+            fontSize: 13, fontWeight: 600, textAlign: 'center',
+            background: 'rgba(78,205,196,0.08)', color: 'var(--text)',
+          }}>
             При росте выручки на <strong>1%</strong> прибыль растёт на{' '}
-            <strong style={{ color: COLORS.blue }}>{leverage.toFixed(2)}%</strong>
+            <strong style={{ color: COLORS.teal }}>{leverage.toFixed(2)}%</strong>
           </div>
         )}
       </ChartCard>
 
       {/* 2.8 — ФОТ: 4 KPI + 100% StackedBar + Line */}
       <div className="space-y-4">
-        <div className="grid grid-cols-4 gap-4">
-          <KpiCard label="ФОТ / выручка (общий)"  value={get('фот_доля_общая')}            format="pct" invertedPositive accentColor={COLORS.navy}
+        <div className="kpi-grid">
+          <KpiCard label="ФОТ / выручка (общий)"  value={get('фот_доля_общая')}            format="pct" invertedPositive
             delta={fmtDelta(get('фот_доля_общая'),            getPrev('фот_доля_общая'))} />
-          <KpiCard label="ФОТ административный"    value={get('фот_доля_административный')} format="pct" invertedPositive accentColor={COLORS.blue}
+          <KpiCard label="ФОТ административный"    value={get('фот_доля_административный')} format="pct" invertedPositive
             delta={fmtDelta(get('фот_доля_административный'), getPrev('фот_доля_административный'))} />
-          <KpiCard label="ФОТ коммерческий"        value={get('фот_доля_коммерческий')}     format="pct" invertedPositive accentColor={COLORS.teal}
+          <KpiCard label="ФОТ коммерческий"        value={get('фот_доля_коммерческий')}     format="pct" invertedPositive
             delta={fmtDelta(get('фот_доля_коммерческий'),     getPrev('фот_доля_коммерческий'))} />
-          <KpiCard label="ФОТ врачи"               value={get('фот_доля_врачи')}            format="pct" invertedPositive accentColor={COLORS.amber}
+          <KpiCard label="ФОТ врачи"               value={get('фот_доля_врачи')}            format="pct" invertedPositive
             delta={fmtDelta(get('фот_доля_врачи'),            getPrev('фот_доля_врачи'))} />
         </div>
 
@@ -344,7 +395,7 @@ export function SectionOPIU({ get, getPrev, getAgg, chartBuckets, last12months }
         >
           <ResponsiveContainer width="100%" height={260}>
             <ComposedChart data={fotData} margin={{ top: 20, right: 55, left: 10, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
               <XAxis dataKey="month" tick={{ fontSize: 11, fill: COLORS.gray }} />
               <YAxis yAxisId="left" domain={[0, 100]} tickFormatter={v => v + '%'} tick={{ fontSize: 10, fill: COLORS.gray }} />
               <YAxis yAxisId="right" orientation="right" tickFormatter={v => v?.toFixed(1) + '%'} tick={{ fontSize: 10, fill: COLORS.gray }} />
@@ -353,7 +404,7 @@ export function SectionOPIU({ get, getPrev, getAgg, chartBuckets, last12months }
               {FOT_COMP.map((k, i) => (
                 <Bar key={k} yAxisId="left" dataKey={k} name={FOT_LABELS[i]} stackId="a" fill={FOT_CLR[i]} />
               ))}
-              <Line yAxisId="right" type="monotone" dataKey="фот_доля_общая" stroke={COLORS.navy}
+              <Line yAxisId="right" type="monotone" dataKey="фот_доля_общая" stroke={COLORS.lblue}
                 strokeWidth={2.5} dot={{ r: 4 }} name="ФОТ / выручка" />
             </ComposedChart>
           </ResponsiveContainer>
@@ -367,21 +418,21 @@ export function SectionOPIU({ get, getPrev, getAgg, chartBuckets, last12months }
             delta={fmtDelta(revPerEmp, getPrev('выручка_на_сотрудника'))} />
           <KpiCard label="ЧП на сотрудника"       value={npPerEmp}  format="money"
             delta={fmtDelta(npPerEmp,  getPrev('чп_на_сотрудника'))} />
-          <KpiCard label="Количество сотрудников" value={empCount}  format="num" accentColor={COLORS.navy}
+          <KpiCard label="Количество сотрудников" value={empCount}  format="num"
             delta={fmtDelta(empCount,  getPrev('количество_сотрудников'))} />
         </div>
 
         <ChartCard title="Выручка на сотрудника" subtitle="₽">
           <ResponsiveContainer width="100%" height={220}>
             <LineChart data={empData} margin={{ top: 20, right: 20, left: 10, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
               <XAxis dataKey="month" tick={{ fontSize: 11, fill: COLORS.gray }} />
               <YAxis tickFormatter={v => Math.round(v / 1000) + 'k'} tick={{ fontSize: 10, fill: COLORS.gray }} />
               <Tooltip formatter={v => [fmtM(v), 'Выручка / сотрудник']} />
               <Line type="monotone" dataKey="value" stroke={COLORS.blue} strokeWidth={2.5} dot={{ r: 4 }}>
                 <LabelList dataKey="value" position="top"
                   formatter={v => v ? Math.round(v / 1000) + 'k' : ''}
-                  style={{ fontSize: 10, fill: COLORS.navy }} />
+                  style={{ fontSize: 10, fill: 'rgba(255,255,255,0.6)' }} />
               </Line>
             </LineChart>
           </ResponsiveContainer>
@@ -395,7 +446,7 @@ export function SectionOPIU({ get, getPrev, getAgg, chartBuckets, last12months }
       >
         <ResponsiveContainer width="100%" height={260}>
           <ComposedChart data={discountData} margin={{ top: 20, right: 55, left: 10, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
             <XAxis dataKey="month" tick={{ fontSize: 11, fill: COLORS.gray }} />
             <YAxis yAxisId="left" tickFormatter={v => Math.round(v / 1000) + 'k'} tick={{ fontSize: 10, fill: COLORS.gray }} />
             <YAxis yAxisId="right" orientation="right" tickFormatter={v => v?.toFixed(1) + '%'} tick={{ fontSize: 10, fill: COLORS.gray }} />

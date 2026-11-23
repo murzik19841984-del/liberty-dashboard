@@ -1,11 +1,7 @@
-import { COLORS } from '../constants';
-
 const SECTIONS = [
-  { id: 'dds',    label: '01 · ДДС' },
-  { id: 'opiu',   label: '02 · ОПиУ' },
-  { id: 'kids',   label: '03 · KIDS vs Взрослая' },
-  { id: 'age',    label: '04 · До 18 / После 18' },
-  { id: 'notes',  label: '05 · Выводы' },
+  { id: 'dds',   label: '01 · ДДС' },
+  { id: 'opiu',  label: '02 · ОПиУ' },
+  { id: 'age',   label: '03 · До 18 / После 18' },
 ];
 
 export function Header({ activeSection, setActiveSection, period, loading, lastUpdated, onRefresh }) {
@@ -14,87 +10,79 @@ export function Header({ activeSection, setActiveSection, period, loading, lastU
           comparison, setComparison } = period;
 
   return (
-    <header className="sticky top-0 z-50" style={{ background: COLORS.navy }}>
-      {/* Top row */}
-      <div className="flex items-center justify-between px-8 h-14">
-        <div className="flex items-center gap-4">
-          <span className="font-bold text-white text-base tracking-wide" style={{ fontFamily: 'Montserrat' }}>
-            ЛИБЕРТИ <span style={{ color: COLORS.lblue }}>·</span> СТОМАТОЛОГИЯ
-          </span>
-          <span className="text-gray-400 text-xs">Управленческий дашборд</span>
-        </div>
-        <div className="flex items-center gap-3">
-          {/* Period type */}
-          <select
-            className="text-xs bg-white/10 text-white border border-white/20 rounded px-2 py-1"
-            value={periodType}
-            onChange={e => setPeriodType(e.target.value)}
-          >
-            <option value="month">Месяц</option>
-            <option value="quarter">Квартал</option>
-            <option value="half">Полугодие</option>
-            <option value="year">Год</option>
+    <header className="dashboard-header">
+
+      {/* ── Строка 1: бренд ── */}
+      <div className="header-row header-row--brand">
+        <span className="brand-name">ЛИБЕРТИ · СТОМАТОЛОГИЯ</span>
+        <span className="brand-divider">&nbsp;|&nbsp;</span>
+        <span className="brand-subtitle">Управленческий дашборд</span>
+      </div>
+
+      {/* ── Строка 2: выбор даты/периода ── */}
+      <div className="header-row header-row--date">
+        <select className="ctrl-select" value={periodType} onChange={e => setPeriodType(e.target.value)}>
+          <option value="month">Месяц</option>
+          <option value="quarter">Квартал</option>
+          <option value="half">Полугодие</option>
+          <option value="year">Год</option>
+        </select>
+
+        {periodType === 'month' && (
+          <input type="month" className="ctrl-select"
+            value={selectedMonth} onChange={e => setSelectedMonth(e.target.value)} />
+        )}
+
+        {periodType === 'quarter' && (
+          <select className="ctrl-select" value={selectedQ} onChange={e => setSelectedQ(Number(e.target.value))}>
+            {[1,2,3,4].map(q => <option key={q} value={q}>Q{q}</option>)}
           </select>
+        )}
 
-          {/* Month picker */}
-          {periodType === 'month' && (
-            <input type="month" className="text-xs bg-white/10 text-white border border-white/20 rounded px-2 py-1"
-              value={selectedMonth} onChange={e => setSelectedMonth(e.target.value)} />
-          )}
+        {['quarter','half','year'].includes(periodType) && (
+          <select className="ctrl-select" value={selectedYear} onChange={e => setSelectedYear(Number(e.target.value))}>
+            {[2025,2026].map(y => <option key={y} value={y}>{y}</option>)}
+          </select>
+        )}
+      </div>
 
-          {/* Quarter picker */}
-          {periodType === 'quarter' && (
-            <select className="text-xs bg-white/10 text-white border border-white/20 rounded px-2 py-1"
-              value={selectedQ} onChange={e => setSelectedQ(Number(e.target.value))}>
-              {[1,2,3,4].map(q => <option key={q} value={q}>Q{q}</option>)}
-            </select>
-          )}
+      {/* ── Строка 3: MoM/QoQ/YoY + обновить ── */}
+      <div className="header-row header-row--controls">
+        <div className="period-toggle">
+          {['MoM', 'QoQ', 'YoY'].map(c => (
+            <button
+              key={c}
+              onClick={() => setComparison(c)}
+              className={`period-btn${comparison === c ? ' active' : ''}`}
+            >{c}</button>
+          ))}
+        </div>
 
-          {/* Year picker */}
-          {['quarter','half','year'].includes(periodType) && (
-            <select className="text-xs bg-white/10 text-white border border-white/20 rounded px-2 py-1"
-              value={selectedYear} onChange={e => setSelectedYear(Number(e.target.value))}>
-              {[2025,2026].map(y => <option key={y} value={y}>{y}</option>)}
-            </select>
-          )}
-
-          {/* Comparison toggle */}
-          <div className="flex rounded overflow-hidden border border-white/20">
-            {['MoM','QoQ','YoY'].map(c => (
-              <button key={c}
-                className={`text-xs px-3 py-1 ${comparison === c ? 'text-white' : 'text-white/50'}`}
-                style={{ background: comparison === c ? COLORS.blue : 'transparent' }}
-                onClick={() => setComparison(c)}
-              >{c}</button>
-            ))}
-          </div>
-
-          {/* Refresh */}
-          <button onClick={onRefresh}
-            className="text-xs text-white/70 border border-white/20 rounded px-3 py-1 hover:bg-white/10"
-          >↺ Обновить</button>
-
-          {/* Status */}
-          <span className="text-xs text-white/40">
-            {loading ? 'Загрузка…' : lastUpdated ? `Обновлено ${lastUpdated.toLocaleTimeString('ru-RU', {hour:'2-digit',minute:'2-digit'})}` : ''}
+        <div className="header-refresh-group">
+          <button className="btn-refresh" onClick={onRefresh}>↻ Обновить</button>
+          <span className="header-updated">
+            {loading
+              ? 'Загрузка…'
+              : lastUpdated
+                ? `Обновлено ${lastUpdated.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}`
+                : ''}
           </span>
         </div>
       </div>
 
-      {/* Navigation tabs */}
-      <div className="flex px-8 border-t border-white/10">
+      {/* ── Строка 4: навигация — отдельный nav, не внутри header-row ── */}
+      <nav className="dashboard-tabs">
         {SECTIONS.map(s => (
-          <button key={s.id}
-            className={`px-5 py-3 text-xs font-semibold border-b-2 transition-colors ${
-              activeSection === s.id
-                ? 'text-white border-white'
-                : 'text-white/40 border-transparent hover:text-white/70'
-            }`}
-            style={{ fontFamily: 'Montserrat' }}
+          <button
+            key={s.id}
             onClick={() => setActiveSection(s.id)}
-          >{s.label}</button>
+            className={`tab${activeSection === s.id ? ' active' : ''}`}
+          >
+            {s.label}
+          </button>
         ))}
-      </div>
+      </nav>
+
     </header>
   );
 }

@@ -1,4 +1,4 @@
-export const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSXumE_JgOvGuImQTwHeWM6sd1jBqfGgxSGd1HG2QHw39v2Y9kL_DdeF_oBgswTqh05_GmuciCZ7F24/pub?gid=1129402777&single=true&output=csv';
+export const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRC3Ex0GWY_wRHsBfBuxmIGbIZ-JXFGgMhCurk-1UTlyEv56AagB0vIx9qgVQSfth2EJwHMDTB6jpB_/pub?gid=1960645677&single=true&output=csv';
 
 export const COLORS = {
   navy:    '#1E3A5F',
@@ -19,7 +19,7 @@ export const SUM_INDICATORS = [
   'выручка','переменные_расходы','маржинальный_доход','общепроизводственные_расходы',
   'валовая_прибыль','административные_расходы','коммерческие_расходы','ebitda',
   'расходы_ниже_ebitda','чистая_прибыль','поступления_от_клиентов','поступления_эквайринг',
-  'поступления_наличные','сальдо_операционное','общий_денежный_поток',
+  'поступления_наличные','поступления_doli','поступления_rassrochka','сальдо_операционное','общий_денежный_поток',
   'количество_визитов','количество_пациентов','количество_визитов_kids',
   'количество_визитов_взрослая','количество_пациентов_kids','количество_пациентов_взрослая',
   'выручка_kids','выручка_взрослая','скидка_абс',

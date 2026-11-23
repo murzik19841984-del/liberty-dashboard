@@ -4,9 +4,7 @@ import { usePeriod } from './hooks/usePeriod';
 import { Header } from './components/Header';
 import { SectionDDS } from './sections/SectionDDS';
 import { SectionOPIU } from './sections/SectionOPIU';
-import { SectionKids } from './sections/SectionKids';
 import { SectionAge } from './sections/SectionAge';
-import { SectionNotes } from './sections/SectionNotes';
 
 export default function App() {
   const [activeSection, setActiveSection] = useState('dds');
@@ -25,7 +23,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen" style={{ background: '#F9FAFB', fontFamily: 'Inter, sans-serif' }}>
+    <div>
       <Header
         activeSection={activeSection}
         setActiveSection={setActiveSection}
@@ -52,9 +50,7 @@ export default function App() {
         <>
           {activeSection === 'dds'   && <SectionDDS  {...sectionProps} />}
           {activeSection === 'opiu'  && <SectionOPIU {...sectionProps} />}
-          {activeSection === 'kids'  && <SectionKids {...sectionProps} />}
           {activeSection === 'age'   && <SectionAge  {...sectionProps} />}
-          {activeSection === 'notes' && <SectionNotes />}
         </>
       )}
     </div>

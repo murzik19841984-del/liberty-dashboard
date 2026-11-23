@@ -28,32 +28,31 @@ function CompareCard({ label, kidsValue, adultValue, kidsDelta, adultDelta, form
     : format === 'num' ? fmtNum(v)
     : fmtM(v);
 
-  const fmtDlt  = d => d === null || d === undefined ? null : (d >= 0 ? '+' : '') + (d * 100).toFixed(1) + '%';
-  const dltClr  = d => d == null ? '' : d >= 0 ? 'text-emerald-500' : 'text-red-500';
-  const dltArr  = d => d == null ? '' : d >= 0 ? '↑' : '↓';
+  const fmtDlt = d => d === null || d === undefined ? null : (d >= 0 ? '+' : '') + (d * 100).toFixed(1) + '%';
+  const dltArr = d => d == null ? '' : d >= 0 ? '↑' : '↓';
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-      <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">{label}</div>
-      <div className="grid grid-cols-2 gap-4 divide-x divide-gray-100">
-        <div className="flex flex-col gap-1">
-          <div className="text-xs font-bold" style={{ color: COLORS.teal }}>KIDS</div>
-          <div className="text-2xl font-bold" style={{ color: COLORS.teal, fontFamily: 'Montserrat' }}>
+    <div className="kpi-card">
+      <div className="kpi-label">{label}</div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, borderTop: '1px solid var(--border)', paddingTop: 12, marginTop: 4 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: COLORS.teal }}>KIDS</div>
+          <div style={{ fontFamily: 'Montserrat', fontSize: 22, fontWeight: 700, color: COLORS.teal }}>
             {fmt(kidsValue)}
           </div>
           {fmtDlt(kidsDelta) && (
-            <div className={`text-sm font-medium ${dltClr(kidsDelta)}`}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: kidsDelta >= 0 ? '#34D399' : '#FF6B6B' }}>
               {dltArr(kidsDelta)} {fmtDlt(kidsDelta)}
             </div>
           )}
         </div>
-        <div className="flex flex-col gap-1 pl-4">
-          <div className="text-xs font-bold" style={{ color: COLORS.blue }}>Взрослая</div>
-          <div className="text-2xl font-bold" style={{ color: COLORS.blue, fontFamily: 'Montserrat' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, borderLeft: '1px solid var(--border)', paddingLeft: 16 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: COLORS.blue }}>Взрослая</div>
+          <div style={{ fontFamily: 'Montserrat', fontSize: 22, fontWeight: 700, color: COLORS.blue }}>
             {fmt(adultValue)}
           </div>
           {fmtDlt(adultDelta) && (
-            <div className={`text-sm font-medium ${dltClr(adultDelta)}`}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: adultDelta >= 0 ? '#34D399' : '#FF6B6B' }}>
               {dltArr(adultDelta)} {fmtDlt(adultDelta)}
             </div>
           )}
@@ -69,12 +68,11 @@ function DualLine({ data, kidsKey = 'kids', adultKey = 'взрослая', label
   return (
     <ResponsiveContainer width="100%" height={260}>
       <LineChart data={data} margin={{ top: 24, right: 20, left: 10, bottom: 0 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
+        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
         <XAxis dataKey="month" tick={{ fontSize: 11, fill: COLORS.gray }} />
         <YAxis tick={{ fontSize: 10, fill: COLORS.gray }} />
         <Tooltip />
         <Legend />
-        {/* KIDS — dashed teal, triangle dot */}
         <Line
           type="monotone"
           dataKey={kidsKey}
@@ -92,7 +90,6 @@ function DualLine({ data, kidsKey = 'kids', adultKey = 'взрослая', label
             style={{ fontSize: 10, fill: COLORS.teal }}
           />
         </Line>
-        {/* Взрослая — solid blue, circle dot */}
         <Line
           type="monotone"
           dataKey={adultKey}
@@ -161,12 +158,11 @@ export function SectionKids({ get, getPrev, getAgg, chartBuckets }) {
   }));
   const effVisible = effData.some(d => d.kids != null || d.взрослая != null);
 
-  /* форматтеры для LabelList */
   const fmtNum_ = v => v != null ? Math.round(v).toLocaleString('ru-RU') : '';
   const fmtK    = v => v != null && v > 0 ? Math.round(v / 1000) + 'k' : '';
 
   return (
-    <div className="p-8 space-y-8">
+    <div className="section-content">
       <SectionTitle number="03">KIDS vs Взрослая</SectionTitle>
 
       {/* 3.1 — Comparison cards 2 × 3 */}
@@ -211,11 +207,10 @@ export function SectionKids({ get, getPrev, getAgg, chartBuckets }) {
           value={chair}
           format="money"
           delta={fmtDelta(chair, getPrev('выручка_на_кресло'))}
-          accentColor={COLORS.navy}
         />
       </div>
 
-      {/* 3.2 — Визиты: dashed-teal-triangle vs solid-blue */}
+      {/* 3.2 — Визиты */}
       <ChartCard
         title="Динамика количества визитов"
         subtitle="KIDS (пунктир · ▲) vs Взрослая (сплошная · ●)"
@@ -238,7 +233,7 @@ export function SectionKids({ get, getPrev, getAgg, chartBuckets }) {
       >
         <ResponsiveContainer width="100%" height={240}>
           <LineChart data={chairData} margin={{ top: 24, right: 20, left: 10, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
             <XAxis dataKey="month" tick={{ fontSize: 11, fill: COLORS.gray }} />
             <YAxis tickFormatter={v => Math.round(v / 1000) + 'k'} tick={{ fontSize: 10, fill: COLORS.gray }} />
             <Tooltip formatter={v => [fmtM(v), 'Выручка на кресло']} />
@@ -254,15 +249,15 @@ export function SectionKids({ get, getPrev, getAgg, chartBuckets }) {
               type="monotone"
               dataKey="value"
               name="Выручка на кресло"
-              stroke={COLORS.navy}
+              stroke={COLORS.lblue}
               strokeWidth={2.5}
-              dot={{ r: 4, fill: COLORS.navy, stroke: '#fff', strokeWidth: 2 }}
+              dot={{ r: 4, fill: COLORS.lblue, stroke: '#fff', strokeWidth: 2 }}
             >
               <LabelList
                 dataKey="value"
                 position="top"
                 formatter={fmtK}
-                style={{ fontSize: 10, fill: COLORS.navy }}
+                style={{ fontSize: 10, fill: 'rgba(255,255,255,0.6)' }}
               />
             </Line>
           </LineChart>
